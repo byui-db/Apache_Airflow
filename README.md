@@ -2,6 +2,13 @@
 
 This is a ready-to-run Apache Airflow + Docker environment designed for classroom use. Students can use this to run Airflow DAGs that connect to datasources and process data pipelines.
 
+## Walkthrough Video
+[Watch: Starter DAG Walkthrough](https://video.byui.edu/media/t/1_zx5alvpi)
+
+
+For README clarity, Option 2 is cleaner. Option 1 works but embeds a large iframe inline.
+
+
 ## Before You Start
 1. Click `Use this template` and save as your own repo
 2. Clone your repo, I prefer the open in GitHub Desktop method
@@ -11,7 +18,9 @@ This is a ready-to-run Apache Airflow + Docker environment designed for classroo
 1. Make sure you have Docker installed on your machine. You can download it from the official Docker website. Here is the link: https://docs.docker.com/get-docker/
 
 ## Setup your .env file
+[Watch: Student .env Walkthrough](https://video.byui.edu/media/t/1_44saehlm)
 1. Edit the `editme.env` by renaming it to just `.env`
+
 
 ## Local environment setup for local testing and key generation
 Note: this `pip install` includes all the other libraries needed for the scripts in the Test folder to run locally outside of Docker. It also lets you run a key generation setup script for Airflow.
