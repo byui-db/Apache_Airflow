@@ -12,6 +12,7 @@ This is a ready-to-run Apache Airflow + Docker environment designed for classroo
 
 ## Setup your .env file
 1. Edit the `editme.env` by renaming it to just `.env`
+2. Your instructor will share the `SNOWFLAKE_ACCOUNT` value in Slack. It uses the new `ORG-ACCOUNT` format (e.g. `SFEDU02-RYB01601`), not the older `xyz12345.us-west-2` locator. If you look up your account in Snowsight, the snippet there may include `authenticator = "externalbrowser"` — ignore that line; this stack uses key-pair auth (next section).
 
 
 ## Local environment setup for local testing and key generation
