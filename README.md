@@ -43,7 +43,12 @@ cat ~/.ssh/dbt_key.pub | clip
 
 2. Update `docker-compose.yaml` line 85. Look for the `# Windows Version` example comment in line 86. It is the same path as Mac but with `C:` added in front. Update the `username` to match your Windows username and add the `C:` as in the example.
 
-3. Your public key is now copied to your clipboard — paste it when prompted by your Snowflake admin (your teacher) to set up key pair authentication.
+3. Update `SNOWFLAKE_PRIVATE_KEY_PATH` in your `.env` file with your Windows username:
+```
+SNOWFLAKE_PRIVATE_KEY_PATH=C:/Users/your-username/.ssh/dbt_key.p8
+```
+
+4. Your public key is now copied to your clipboard — paste it when prompted by your Snowflake admin (your teacher) to set up key pair authentication.
 
 ## MAC Generate a Public Key for Snowflake
 
@@ -58,7 +63,12 @@ cat ~/.ssh/dbt_key.pub | pbcopy
 
 2. Update `docker-compose.yaml` line 85. Look for the `# Mac Version` comment and update `username` in the path to match your Mac username.
 
-3. Your public key is now copied to your clipboard — paste it when prompted by your Snowflake admin (your teacher) to set up key pair authentication.
+3. Update `SNOWFLAKE_PRIVATE_KEY_PATH` in your `.env` file with your Mac username:
+```
+SNOWFLAKE_PRIVATE_KEY_PATH=/Users/your-username/.ssh/dbt_key
+```
+
+4. Your public key is now copied to your clipboard — paste it when prompted by your Snowflake admin (your teacher) to set up key pair authentication.
 
 Resource: [Snowflake Documentation on Key Pair Auth](https://docs.snowflake.com/en/user-guide/key-pair-auth)
 
