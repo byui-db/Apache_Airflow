@@ -65,12 +65,39 @@ cat ~/.ssh/dbt_key.pub | pbcopy
 
 3. Update `SNOWFLAKE_PRIVATE_KEY_PATH` in your `.env` file with your Mac username:
 ```
-SNOWFLAKE_PRIVATE_KEY_PATH=/Users/your-username/.ssh/dbt_key
+SNOWFLAKE_PRIVATE_KEY_PATH=/Users/your-username/.ssh/dbt_key.p8
 ```
 
 4. Your public key is now copied to your clipboard — paste it when prompted by your Snowflake admin (your teacher) to set up key pair authentication.
 
 Resource: [Snowflake Documentation on Key Pair Auth](https://docs.snowflake.com/en/user-guide/key-pair-auth)
+
+## LINUX Generate a Public Key for Snowflake
+
+1. Generate SSH keys for the Snowflake connection. Run the following in a terminal:
+
+```bash
+mkdir -p ~/.ssh
+openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out ~/.ssh/dbt_key.p8 -nocrypt
+openssl rsa -in ~/.ssh/dbt_key.p8 -pubout -out ~/.ssh/dbt_key.pub
+cat ~/.ssh/dbt_key.pub | xclip -selection clipboard
+```
+
+If `xclip` is not installed, either install it (`sudo apt install xclip`) or run `cat ~/.ssh/dbt_key.pub` and copy the output manually.
+
+2. Update `docker-compose.yaml` line 85. Look for the `# Mac Version` comment and replace the line with the Linux equivalent:
+
+```
+- /home/your-username/.ssh:/home/your-username/.ssh:ro  # Linux Version
+```
+
+3. Update `SNOWFLAKE_PRIVATE_KEY_PATH` in your `.env` file with your Linux username:
+
+```
+SNOWFLAKE_PRIVATE_KEY_PATH=/home/your-username/.ssh/dbt_key.p8
+```
+
+4. Your public key is on your clipboard (or in `~/.ssh/dbt_key.pub`) — paste it when prompted by your Snowflake admin (your teacher) to set up key pair authentication.
 
 # ✅ Getting Airflow Started
 
