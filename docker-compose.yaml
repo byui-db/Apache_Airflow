@@ -82,8 +82,9 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/test:/opt/airflow/test
     - ${AIRFLOW_PROJ_DIR:-.}/staging:/opt/airflow/staging
     - ./requirements.txt:/requirements.txt  # Mount requirements.txt
-    - /Users/chazclar/.ssh:/Users/chazclar/.ssh:ro  # Mac Version #Mount private key for Snowflake, replace with your username
-    # - C:/Users/username/.ssh:/Users/username/.ssh:ro # Windows Version #path for username, replace with your path
+    # Cross-platform SSH key mount (Mac/Windows/Linux). Host side: ~/.ssh resolves to your home dir on any OS.
+    # Container side uses HOST_USERNAME from your .env so SNOWFLAKE_PRIVATE_KEY_PATH stays unchanged (e.g. /Users/<you>/.ssh/dbt_key).
+    - ~/.ssh:/Users/${HOST_USERNAME}/.ssh:ro
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on

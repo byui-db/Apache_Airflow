@@ -34,3 +34,4 @@ student_labs/*.pdf
 student_labs/video_note.md
 /gh-issues-agent/
 /.github_issues/
+/bug/*

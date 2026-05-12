@@ -41,14 +41,13 @@ openssl rsa -in ~/.ssh/dbt_key.p8 -pubout -out ~/.ssh/dbt_key.pub
 cat ~/.ssh/dbt_key.pub | clip
 ```
 
-2. Update `docker-compose.yaml` line 85. Look for the `# Windows Version` example comment in line 86. It is the same path as Mac but with `C:` added in front. Update the `username` to match your Windows username and add the `C:` as in the example.
-
-3. Update `SNOWFLAKE_PRIVATE_KEY_PATH` in your `.env` file with your Windows username:
+2. In your `.env` file, set `HOST_USERNAME` to your Windows username (the one from `C:\Users\<this>`) and update `SNOWFLAKE_PRIVATE_KEY_PATH` to match. Both values must use the **same** username, and the path uses forward slashes — it's the in-container path, not a Windows path, so do **not** put `C:` in front:
 ```
-SNOWFLAKE_PRIVATE_KEY_PATH=C:/Users/your-username/.ssh/dbt_key.p8
+HOST_USERNAME=your-username
+SNOWFLAKE_PRIVATE_KEY_PATH=/Users/your-username/.ssh/dbt_key.p8
 ```
 
-4. Your public key is now copied to your clipboard — paste it when prompted by your Snowflake admin (your teacher) to set up key pair authentication.
+3. Your public key is now copied to your clipboard — paste it when prompted by your Snowflake admin (your teacher) to set up key pair authentication.
 
 ## MAC Generate a Public Key for Snowflake
 
@@ -61,14 +60,13 @@ openssl rsa -in ~/.ssh/dbt_key.p8 -pubout -out ~/.ssh/dbt_key.pub
 cat ~/.ssh/dbt_key.pub | pbcopy
 ```
 
-2. Update `docker-compose.yaml` line 85. Look for the `# Mac Version` comment and update `username` in the path to match your Mac username.
-
-3. Update `SNOWFLAKE_PRIVATE_KEY_PATH` in your `.env` file with your Mac username:
+2. In your `.env` file, set `HOST_USERNAME` to your Mac short name (the one shown in `/Users/<this>`) and update `SNOWFLAKE_PRIVATE_KEY_PATH` to match. Both values must use the **same** username:
 ```
+HOST_USERNAME=your-username
 SNOWFLAKE_PRIVATE_KEY_PATH=/Users/your-username/.ssh/dbt_key.p8
 ```
 
-4. Your public key is now copied to your clipboard — paste it when prompted by your Snowflake admin (your teacher) to set up key pair authentication.
+3. Your public key is now copied to your clipboard — paste it when prompted by your Snowflake admin (your teacher) to set up key pair authentication.
 
 Resource: [Snowflake Documentation on Key Pair Auth](https://docs.snowflake.com/en/user-guide/key-pair-auth)
 
@@ -85,19 +83,14 @@ cat ~/.ssh/dbt_key.pub | xclip -selection clipboard
 
 If `xclip` is not installed, either install it (`sudo apt install xclip`) or run `cat ~/.ssh/dbt_key.pub` and copy the output manually.
 
-2. Update `docker-compose.yaml` line 85. Look for the `# Mac Version` comment and replace the line with the Linux equivalent:
+2. In your `.env` file, set `HOST_USERNAME` to your Linux username (the one shown in `/home/<this>`) and update `SNOWFLAKE_PRIVATE_KEY_PATH` to match. Note: even though your host home is `/home/<you>`, the in-container path is under `/Users/` — the compose file mounts `~/.ssh` to `/Users/${HOST_USERNAME}/.ssh` regardless of host OS, so use this form:
 
 ```
-- /home/your-username/.ssh:/home/your-username/.ssh:ro  # Linux Version
+HOST_USERNAME=your-username
+SNOWFLAKE_PRIVATE_KEY_PATH=/Users/your-username/.ssh/dbt_key.p8
 ```
 
-3. Update `SNOWFLAKE_PRIVATE_KEY_PATH` in your `.env` file with your Linux username:
-
-```
-SNOWFLAKE_PRIVATE_KEY_PATH=/home/your-username/.ssh/dbt_key.p8
-```
-
-4. Your public key is on your clipboard (or in `~/.ssh/dbt_key.pub`) — paste it when prompted by your Snowflake admin (your teacher) to set up key pair authentication.
+3. Your public key is on your clipboard (or in `~/.ssh/dbt_key.pub`) — paste it when prompted by your Snowflake admin (your teacher) to set up key pair authentication.
 
 # ✅ Getting Airflow Started
 
@@ -128,4 +121,40 @@ docker compose down
 1. This will stop all running containers, remove the containers, and delete any associated volumes for this project.
 ```bash
 docker compose down --volumes --remove-orphans
+```
+
+### Windows: `FileNotFoundError` on the Snowflake private key
+Symptom: DAG task fails with `FileNotFoundError: [Errno 2] No such file or directory: '/Users/<you>/.ssh/dbt_key.p8'` even though the file exists on your Windows machine.
+
+Cause: the `HOST_USERNAME` value in your `.env` doesn't match the username portion of `SNOWFLAKE_PRIVATE_KEY_PATH`, or `HOST_USERNAME` is missing entirely. The compose file mounts `~/.ssh` to `/Users/${HOST_USERNAME}/.ssh` inside the container — if those two values disagree, the path your DAG reads won't exist.
+
+Also: do **not** put `C:` anywhere in your `.env` paths. `SNOWFLAKE_PRIVATE_KEY_PATH` is read *inside* the Linux container, so the path uses forward slashes and lives under `/Users/<your_username>/.ssh/`, regardless of OS.
+
+Fix: open your `.env` and confirm both lines use the same username:
+```
+HOST_USERNAME=your-windows-username
+SNOWFLAKE_PRIVATE_KEY_PATH=/Users/your-windows-username/.ssh/dbt_key.p8
+```
+Then recreate the containers (a restart is not enough — mounts only re-evaluate on recreate):
+```bash
+docker compose down
+docker compose up -d --build
+```
+Verify the key is visible inside the container:
+```bash
+docker compose exec airflow-scheduler ls -la /Users/<your_username>/.ssh/
+```
+If `dbt_key.p8` appears in that listing, the mount is good.
+
+## Snowflake troubleshooting
+### `Table '...' does not exist` when the DAG tries to load
+Symptom: the Snowflake connection opens fine but the load step fails with `SQL compilation error: Table 'SNOWBEARAIR_DB.RAW.STARTER_DAG_<NAME>' does not exist`.
+
+Cause: `write_pandas` is called with `auto_create_table=False`, so the target table must already exist in Snowflake before the DAG runs. Each student is responsible for creating their own table once.
+
+Fix: run the `CREATE TABLE IF NOT EXISTS` DDL from the comment block in your DAG file (e.g. [dags/starter_dag.py](dags/starter_dag.py)) against your table name. **Run it in a SQL worksheet or a SQL cell — not a Python cell.** A Snowsight notebook cell defaults to Python, and pasting SQL into a Python cell will throw `SyntaxError: invalid syntax` at the word `CREATE`. To change cell language, click the `Python` dropdown at the top-left of the cell and switch to `SQL`, or open a plain SQL Worksheet from the left nav.
+
+Verify the table exists after creating:
+```sql
+SHOW TABLES LIKE 'STARTER_DAG_<YOUR_NAME>' IN SCHEMA SNOWBEARAIR_DB.RAW;
 ```
