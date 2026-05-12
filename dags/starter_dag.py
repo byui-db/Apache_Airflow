@@ -9,7 +9,7 @@ import requests
 import pandas as pd # Import pandas for DataFrame operations
 from snowflake.connector.pandas_tools import write_pandas
 
-from airflow.sdk import dag, task
+from airflow.sdk import dag, task, get_current_context
 
 # Import utility functions from utils.py (need to ensure it's on the path if not already)
 # This project's setup seems to handle dags/utils.py imports automatically for DAGs.
@@ -25,7 +25,8 @@ SNOWFLAKE_TABLE = "BORED_API_ACTIVITIES" # Table name for Bored API data
 
 @dag(
     dag_id="starter_dag",
-    start_date=datetime(2026, 1, 6, tzinfo=timezone.utc), # Ensure timezone-aware
+    # Dynamic: "7 days ago at midnight UTC", evaluated at DAG parse time. Safety net for the starter — even if you flip catchup=True, the worst-case backfill is ~7 daily runs. For DAG 2 / DAG 3 with real backfill, use a fixed date like datetime(2026, 1, 6, tzinfo=timezone.utc) and let catchup=True walk from there.
+    start_date=(datetime.now(timezone.utc) - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0),
     schedule="@daily",
     catchup=False, # Flip to True only after you understand backfill; with an old start_date + @daily this can enqueue 100+ runs at once and stall the local stack
     tags=["starter", "example", "elt", "snowflake"],
@@ -77,7 +78,18 @@ def starter_dag_elt():
     def transform_data(file_path: str):
         """
         Reads the staged file, transforms the data.
+
+        Demonstrates the Airflow runtime-context pattern you'll reuse in DAG 2 and DAG 3:
+        instead of stamping rows with wall-clock `datetime.now()`, ask Airflow which
+        logical date this run represents via `get_current_context()`. When catchup=True
+        backfills 100 days, each run's FETCH_DATE will be its own historical date —
+        not all stamped with today.
         """
+        # data_interval_start is the start of the schedule interval this run represents.
+        # For a backfilled run on 2026-02-15, this is 2026-02-15T00:00:00+00:00 — not "now".
+        context = get_current_context()
+        logical_date = context["data_interval_start"]
+
         with open(file_path, "r") as f:
             data = json.load(f)
 
@@ -104,7 +116,7 @@ def starter_dag_elt():
             "LINK": data.get("link"),
             "ACCESSIBILITY": accessibility_value,
             "UNIQUE_KEY": data.get("key"), # Bored API provides a unique key per activity
-            "FETCH_DATE": datetime.now().isoformat() # Add a fetch timestamp
+            "FETCH_DATE": logical_date.isoformat()  # Airflow's run date — historical on backfills, today on a live run
         }
         
         # Convert to pandas DataFrame for easy loading to Snowflake
