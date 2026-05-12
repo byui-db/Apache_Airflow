@@ -27,7 +27,7 @@ SNOWFLAKE_TABLE = "BORED_API_ACTIVITIES" # Table name for Bored API data
     dag_id="starter_dag",
     start_date=datetime(2026, 1, 6, tzinfo=timezone.utc), # Ensure timezone-aware
     schedule="@daily",
-    catchup=True, # Set to True to backfill historical data if needed
+    catchup=False, # Flip to True only after you understand backfill; with an old start_date + @daily this can enqueue 100+ runs at once and stall the local stack
     tags=["starter", "example", "elt", "snowflake"],
 )
 def starter_dag_elt():

@@ -146,6 +146,17 @@ docker compose exec airflow-scheduler ls -la /Users/<your_username>/.ssh/
 ```
 If `dbt_key.p8` appears in that listing, the mount is good.
 
+### DAG runs stuck "Running" or repeatedly retrying on first startup
+Symptom: shortly after `docker compose up`, the `starter_dag` (or any DAG) shows many DAG runs queued up at once, the first task (e.g. `extract_activity`) is stuck "Running" through multiple retries, and the Docker stack feels sluggish or unresponsive.
+
+Cause: Airflow is **backfilling**. If a DAG has `catchup=True` and a `start_date` that's weeks or months in the past, the scheduler enqueues one run for *every* missed schedule interval between `start_date` and today. For a `@daily` schedule that's 100+ concurrent runs hitting the same API on a single-laptop Docker setup, which throttles the worker and causes timeouts and retries.
+
+Fix: in your DAG file (e.g. [dags/starter_dag.py](dags/starter_dag.py) around lines 28–30), either:
+1. Set `catchup=False` — recommended for most student DAGs; you don't need historical backfills, and
+2. Move `start_date` forward to a recent date (e.g. yesterday or a few days ago).
+
+After editing, save the file, then in the Airflow UI go to the DAG → **Browse → DAG Runs** and delete any queued/stuck runs. New runs will follow the updated config.
+
 ## Snowflake troubleshooting
 ### `Table '...' does not exist` when the DAG tries to load
 Symptom: the Snowflake connection opens fine but the load step fails with `SQL compilation error: Table 'SNOWBEARAIR_DB.RAW.STARTER_DAG_<NAME>' does not exist`.
