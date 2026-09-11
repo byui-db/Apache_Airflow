@@ -6,6 +6,13 @@ staging it, transforming it, and loading it into Snowflake. It follows ETL
 best practices, including the use of a staging area and a processed-date log
 for idempotency.
 
+## Optional Airflow 3 exploration (not required for the baseline exercise)
+Once the baseline pipeline works, students can experiment with setup/teardown
+tasks for the SSH tunnel and MongoDB client so cleanup still runs after a
+failure, `@task.short_circuit` or branching for weekend/holiday decisions, and
+dynamic task mapping with `expand()` when processing multiple collections or
+partitions. The existing `try/finally` cleanup is the required baseline.
+
 ## Instructions for Students:
 1.  **Fill in the `TODO` sections** in each task to complete the pipeline.
 2.  **MongoDB Connection:** The `extract_from_mongo` task uses an SSH tunnel.
@@ -227,6 +234,10 @@ def mongo_template_pipeline():
             log.warning(f"Staging directory not found for cleanup: {local_dir}")
 
     # --- Task Chaining ---
+    # OPTIONAL: Model the tunnel/client lifecycle with Airflow setup/teardown
+    # tasks. A teardown task is designed to run even when work in its scope
+    # fails. Do not remove the working `try/finally` cleanup until the extension
+    # has been tested in the local Airflow environment.
     extract_result = extract_from_mongo()
     transform_result = transform_data(extract_result)
     loaded_date = load_to_snowflake(transform_result)

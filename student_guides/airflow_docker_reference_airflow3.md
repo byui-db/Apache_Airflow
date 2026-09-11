@@ -1,4 +1,4 @@
-# Airflow Docker Quick Reference (Airflow 3.0)
+# Airflow Docker Quick Reference (Airflow 3.3.1)
 
 ## Starting Airflow
 Start all Airflow services (scheduler, apiserver, dag processor, worker, triggerer, etc.) in the background:
@@ -64,4 +64,4 @@ docker-compose logs -f airflow-apiserver
 
 ---
 
-✅ That’s the minimum workflow to get new DAGs to show up reliably in **Airflow 3.0**.
+✅ That’s the minimum workflow to get new DAGs to show up reliably in **Airflow 3.3.1**.

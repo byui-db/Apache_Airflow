@@ -4,6 +4,13 @@
 This DAG provides a skeleton for fetching data from an API, staging it,
 transforming it, and loading it into Snowflake, following ETL best practices.
 
+## Optional Airflow 3 exploration (not required for the baseline exercise)
+The starter DAG intentionally stays simple. After this pipeline works, students
+can experiment with `expand()` for dynamic task mapping (one mapped task per
+city), `@task_group` to group extract/transform/load stages, or
+`@task.short_circuit` to make the no-data path explicit. Keep the original
+linear version working before trying these extensions.
+
 ## Instructions for Students:
 1.  **Fill in the `TODO` sections** in each task to complete the pipeline.
 2.  **API Connection:** The `extract_from_api` task connects to the Open-Meteo API.
@@ -221,6 +228,11 @@ def api_template_pipeline():
 
 
     # --- Task Chaining ---
+    # OPTIONAL: Once the linear pipeline works, try mapping the city-level API
+    # work with `fetch_city.expand(city=list(CITIES))` instead of looping over
+    # CITIES inside one task. Airflow will create one task instance per city.
+    # Another optional extension is to put extract/transform/load in a
+    # `@task_group` so the Graph view stays readable as the DAG grows.
     extract_result = extract_from_api()
     transform_result = transform_data(extract_result)
     loaded_date = load_to_snowflake(transform_result)

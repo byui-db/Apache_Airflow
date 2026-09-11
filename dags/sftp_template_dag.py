@@ -5,6 +5,13 @@ This DAG provides a skeleton for downloading files from an SFTP server,
 transforming them, and loading them into Snowflake, incorporating best practices
 for logging, staging, and preventing duplicate processing.
 
+## Optional Airflow 3 exploration (not required for the baseline exercise)
+After the baseline pipeline works, students can try `@task_group` for the
+extract/transform/load stages, dynamic task mapping with `expand()` for one
+mapped task per downloaded file, and an Airflow `Asset` for the staged output.
+An asset-aware downstream DAG can then run when the SFTP load publishes new
+data instead of relying only on a clock schedule.
+
 ## Instructions for Students:
 1.  **Fill in the `TODO` sections** in each task to complete the pipeline.
 2.  **Staging Area:** Files are downloaded to the `staging/sftp/{date}` directory.
@@ -200,6 +207,10 @@ def sftp_template_pipeline():
 
 
     # --- Task Chaining ---
+    # OPTIONAL: Replace the loop in `transform_data` with a mapped task such as
+    # `read_one_file.expand(file_path=local_files)` after the extraction task
+    # returns a list. This is an extension exercise; the loop is the required
+    # baseline because it is easier to debug.
     extract_result = extract_from_sftp()
     transform_result = transform_data(extract_result)
     loaded_date = load_to_snowflake(transform_result)
