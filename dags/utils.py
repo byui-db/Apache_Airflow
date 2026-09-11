@@ -63,8 +63,8 @@ def get_snowflake_connection(schema: str = None):
         user=os.getenv("SNOWFLAKE_USER"),
         account=os.getenv("SNOWFLAKE_ACCOUNT"),
         role=os.getenv("SNOWFLAKE_ROLE"),
-        warehouse=os.getenv("SNOWFLAKE_WAREHOUSE", "RAW_WH"),
-        database=os.getenv("SNOWFLAKE_DATABASE", "SNOWBEARAIR_DB"),
+        warehouse=os.getenv("SNOWFLAKE_WAREHOUSE", "STUDENT_WH"),
+        database=os.getenv("SNOWFLAKE_DATABASE", "PROJECT_DB"),
         schema=schema or os.getenv("SNOWFLAKE_SCHEMA", "RAW"),
     )
 

@@ -12,7 +12,8 @@ This is a ready-to-run Apache Airflow + Docker environment designed for classroo
 
 ## Setup your .env file
 1. Edit the `editme.env` by renaming it to just `.env`
-2. Your instructor will share the `SNOWFLAKE_ACCOUNT` value in Slack. It uses the new `ORG-ACCOUNT` format (e.g. `SFEDU02-RYB01601`), not the older `xyz12345.us-west-2` locator. If you look up your account in Snowsight, the snippet there may include `authenticator = "externalbrowser"` — ignore that line; this stack uses key-pair auth (next section).
+2. Your instructor will share the `SNOWFLAKE_ACCOUNT` value in Slack. It uses the `ORG-ACCOUNT` format (e.g. `VXZJSRC-AG60135`), not the retired `SFEDU02` account or the older `xyz12345.us-west-2` locator. If you look up your account in Snowsight, the snippet there may include `authenticator = "externalbrowser"` — ignore that line; this stack uses key-pair auth (next section).
+3. For FA26, Airflow project DAGs load into `PROJECT_DB.RAW`. The SQL modeling labs use `SNOWBEARAIR_DB.PUBLIC` as their source and `SNOWBEARAIR_DB.MODELED` for student-built tables.
 
 
 ## Local environment setup for local testing and key generation
@@ -159,7 +160,7 @@ After editing, save the file, then in the Airflow UI go to the DAG → **Browse 
 
 ## Snowflake troubleshooting
 ### `Table '...' does not exist` when the DAG tries to load
-Symptom: the Snowflake connection opens fine but the load step fails with `SQL compilation error: Table 'SNOWBEARAIR_DB.RAW.STARTER_DAG_<NAME>' does not exist`.
+Symptom: the Snowflake connection opens fine but the load step fails with `SQL compilation error: Table 'PROJECT_DB.RAW.STARTER_DAG_<NAME>' does not exist`.
 
 Cause: `write_pandas` is called with `auto_create_table=False`, so the target table must already exist in Snowflake before the DAG runs. Each student is responsible for creating their own table once.
 
@@ -167,5 +168,5 @@ Fix: run the `CREATE TABLE IF NOT EXISTS` DDL from the comment block in your DAG
 
 Verify the table exists after creating:
 ```sql
-SHOW TABLES LIKE 'STARTER_DAG_<YOUR_NAME>' IN SCHEMA SNOWBEARAIR_DB.RAW;
+SHOW TABLES LIKE 'STARTER_DAG_<YOUR_NAME>' IN SCHEMA PROJECT_DB.RAW;
 ```
