@@ -10,7 +10,7 @@ from pathlib import Path
 # pip install paramiko==3.5.1 python-dotenv sshtunnel==0.4.0
 
 # Load env
-load_dotenv(Path(__file__).parent / "student.env")
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 SFTP_HOST = os.getenv("SFTP_HOST")
 SFTP_PORT = int(os.getenv("SFTP_PORT"))
