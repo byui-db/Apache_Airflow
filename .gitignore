@@ -18,6 +18,9 @@
 !/staging/api/
 !/staging/mongo/
 !/staging/sftp/
+/staging/api/*
+/staging/mongo/*
+/staging/sftp/*
 !/staging/api/processed_dates.txt
 !/staging/mongo/processed_dates.txt
 !/staging/sftp/processed_dates.txt
@@ -35,3 +38,6 @@ student_labs/video_note.md
 /gh-issues-agent/
 /.github_issues/
 /bugs/*
+__pycache__/
+.DS_Store
+/handoffs/
