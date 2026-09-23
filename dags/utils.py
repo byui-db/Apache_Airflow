@@ -24,7 +24,19 @@ load_dotenv()
 # -------------------------------------------------------------------
 def get_sp500_tickers() -> list[str]:
     """
-    Fetches the current list of S&P 500 tickers from Wikipedia.
+    Return the current S&P 500 ticker symbols from Wikipedia.
+
+    The symbols are stripped of surrounding whitespace, de-duplicated,
+    sorted alphabetically, and normalized for common market-data APIs by
+    replacing periods with hyphens (for example, ``BRK.B`` becomes
+    ``BRK-B``).
+
+    Returns:
+        A sorted list of ticker symbols as strings.
+
+    Raises:
+        Any exception raised by ``pandas.read_html`` if Wikipedia cannot be
+        reached or its table format changes.
     """
     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     # Add a User-Agent so Wikipedia doesn't block the request
@@ -52,12 +64,32 @@ def get_sp500_tickers() -> list[str]:
 # -------------------------------------------------------------------
 def get_snowflake_connection(schema: str = None):
     """
-    Connect to Snowflake using ONLY key-pair authentication.
-    Requires one of:
-      - SNOWFLAKE_PRIVATE_KEY_PATH
-      - SNOWFLAKE_PRIVATE_KEY_B64
-    Optional:
-      - SNOWFLAKE_PRIVATE_KEY_PASSPHRASE
+    Open a Snowflake connection using key-pair authentication only.
+
+    Connection settings are read from environment variables. The private key
+    must be supplied either as a file path or as base64-encoded PEM data. A
+    passphrase is optional. ``schema`` overrides ``SNOWFLAKE_SCHEMA`` when it
+    is provided.
+
+    Required environment variables:
+        ``SNOWFLAKE_USER``, ``SNOWFLAKE_ACCOUNT``, and either
+        ``SNOWFLAKE_PRIVATE_KEY_PATH`` or ``SNOWFLAKE_PRIVATE_KEY_B64``.
+
+    Optional environment variables:
+        ``SNOWFLAKE_ROLE``, ``SNOWFLAKE_WAREHOUSE``,
+        ``SNOWFLAKE_DATABASE``, ``SNOWFLAKE_SCHEMA``, and
+        ``SNOWFLAKE_PRIVATE_KEY_PASSPHRASE``.
+
+    Args:
+        schema: Snowflake schema to use instead of the configured default.
+
+    Returns:
+        An open Snowflake connection.
+
+    Raises:
+        ValueError: If neither private-key environment variable is set.
+        Any exception raised while reading, decoding, or loading the key, or
+        while connecting to Snowflake.
     """
     common = dict(
         user=os.getenv("SNOWFLAKE_USER"),
@@ -100,9 +132,19 @@ def get_snowflake_connection(schema: str = None):
 # -------------------------------------------------------------------
 def get_mongo_client(local_port=None):
     """
-    Returns a MongoDB client.
-    - If using SSH tunnel, pass tunnel.local_bind_port as local_port.
-    - If connecting directly, env vars are used.
+    Create a MongoDB client from environment-based connection settings.
+
+    Pass an SSH tunnel's local port to connect through that tunnel. When no
+    local port is provided, the client connects directly to ``MONGO_HOST``.
+    The password is URL-encoded before it is placed in the connection URI.
+
+    Args:
+        local_port: Local port exposed by an SSH tunnel. If omitted, use
+            ``MONGO_HOST`` and ``MONGO_PORT`` instead.
+
+    Returns:
+        A ``pymongo.MongoClient`` instance. Creating the client does not
+        necessarily verify the connection until MongoDB is first contacted.
     """
     from urllib.parse import quote_plus
     host = "127.0.0.1" if local_port else os.getenv("MONGO_HOST")
@@ -116,7 +158,17 @@ def get_mongo_client(local_port=None):
 
 def get_mongo_collection(client):
     """
-    Returns the default MongoDB collection based on env vars.
+    Return the configured MongoDB collection.
+
+    The database and collection names come from ``MONGO_DB`` and
+    ``MONGO_COLLECTION``. The client must already be connected or configured
+    to connect to the intended MongoDB deployment.
+
+    Args:
+        client: A ``pymongo.MongoClient`` instance.
+
+    Returns:
+        The MongoDB collection selected by the environment variables.
     """
     db_name = os.getenv("MONGO_DB")
     collection_name = os.getenv("MONGO_COLLECTION")
@@ -127,7 +179,20 @@ def get_mongo_collection(client):
 # SSH Tunnel to MongoDB
 # ---------------------------------------------------------
 def create_ssh_tunnel():
-    """Start an SSH tunnel and return the tunnel object."""
+    """Start an SSH tunnel that forwards local MongoDB traffic.
+
+    SSH credentials and the remote MongoDB host and port are read from
+    ``SSH_HOST``, ``SSH_PORT``, ``SSH_USER``, ``SSH_PASSWORD``, ``MONGO_HOST``,
+    and ``MONGO_PORT``. The tunnel listens on ``127.0.0.1:27017`` and forwards
+    traffic to the configured remote MongoDB endpoint.
+
+    Returns:
+        A started ``SSHTunnelForwarder``. Callers are responsible for stopping
+        it when the connection is no longer needed.
+
+    Raises:
+        Any exception raised while creating or starting the tunnel.
+    """
     SSH_HOST = os.getenv("SSH_HOST")
     SSH_PORT = int(os.getenv("SSH_PORT"))
     SSH_USER = os.getenv("SSH_USER")
@@ -152,7 +217,22 @@ def create_ssh_tunnel():
 # ---------------------------------------------------------
 
 def build_weather_record(weather_dict, target_date, city):
-    """Extract weather metrics safely from API response."""
+    """Convert one day's API weather response into a compact record.
+
+    The function reads the first value from each daily metric and returns
+    ``None`` when a metric or the ``daily`` section is missing. It does not
+    validate units or transform the date and city values.
+
+    Args:
+        weather_dict: Weather API response containing an optional ``daily``
+            mapping.
+        target_date: Date to store in the resulting record.
+        city: City name to store in the resulting record.
+
+    Returns:
+        A dictionary with ``date``, ``city``, ``max_temp``, ``min_temp``,
+        ``precip``, and ``max_wind`` keys.
+    """
     daily_data = weather_dict.get("daily", {})
     return {
         "date": target_date,
@@ -168,7 +248,22 @@ def build_weather_record(weather_dict, target_date, city):
 # ---------------------------------------------------------
 
 def build_merge_sql(rec, table):
-    """Return a parameterized Snowflake MERGE statement."""
+    """Build a Snowflake ``MERGE`` statement for one weather record.
+
+    The statement updates an existing row identified by ``DATE`` and
+    ``CITY`` or inserts a new row when no match exists. Numeric missing values
+    are rendered as SQL ``NULL``. The table name and record values are
+    interpolated directly into the returned string, so callers should pass
+    trusted, validated values before executing it.
+
+    Args:
+        rec: Mapping containing ``date``, ``city``, ``max_temp``, ``min_temp``,
+            ``max_wind``, and ``precip`` values.
+        table: Destination Snowflake table name.
+
+    Returns:
+        The SQL text for the merge operation.
+    """
     return f"""
         MERGE INTO {table} t
         USING (SELECT
@@ -197,8 +292,17 @@ def build_merge_sql(rec, table):
 
 def create_sftp_connection():
     """
-    Establish an SFTP connection using username/password from .env.
-    Returns a live paramiko SFTP client.
+    Open an SFTP connection using username/password authentication.
+
+    Connection settings are read from ``SFTP_HOST``, ``SFTP_PORT``,
+    ``SFTP_USER``, and ``SFTP_PASSWORD``. The returned client is live and
+    ready for file operations; callers should close it when finished.
+
+    Returns:
+        A live ``paramiko.SFTPClient``.
+
+    Raises:
+        Any exception raised while creating the transport or authenticating.
     """
     host = os.getenv("SFTP_HOST")
     port = int(os.getenv("SFTP_PORT", 22))
@@ -216,14 +320,33 @@ def create_sftp_connection():
         raise
 
 def is_directory(sftp, path):
-    """Check if a given SFTP path is a directory."""
+    """Return whether an SFTP path points to a directory.
+
+    Args:
+        sftp: An active SFTP client with a ``stat`` method.
+        path: Remote path to inspect.
+
+    Returns:
+        ``True`` when the path is a directory, otherwise ``False``. An
+        ``IOError`` from a missing or inaccessible path is treated as
+        ``False``.
+    """
     try:
         return stat.S_ISDIR(sftp.stat(path).st_mode)
     except IOError:
         return False
 
 def list_folders(sftp):
-    """Return list of top-level folders on SFTP."""
+    """List directory names in the SFTP client's current directory.
+
+    Args:
+        sftp: An active SFTP client. Its current working directory determines
+            which entries are inspected.
+
+    Returns:
+        A list of entries that are directories. If listing fails, log the
+        error and return an empty list.
+    """
     try:
         folders = [f for f in sftp.listdir() if is_directory(sftp, f)]
         logging.info(f"📂 Found {len(folders)} folders on SFTP.")
@@ -233,7 +356,17 @@ def list_folders(sftp):
         return []
 
 def list_files(sftp, folder):
-    """Return list of files within a given folder."""
+    """Change into an SFTP folder and list its non-directory entries.
+
+    Args:
+        sftp: An active SFTP client.
+        folder: Remote folder path. The client's working directory is changed
+            to this folder before listing.
+
+    Returns:
+        A list of file names in ``folder``. If changing directories or
+        listing fails, log the error and return an empty list.
+    """
     try:
         sftp.chdir(folder)
         files = [f for f in sftp.listdir() if not is_directory(sftp, f)]
@@ -244,7 +377,19 @@ def list_files(sftp, folder):
         return []
 
 def read_file_from_sftp(sftp, folder, filename):
-    """Read a file from SFTP and return its content as text."""
+    """Read a UTF-8 text file from an SFTP folder.
+
+    Args:
+        sftp: An active SFTP client with an ``open`` method.
+        folder: Remote folder containing the file.
+        filename: Name of the remote file to read.
+
+    Returns:
+        The complete file contents decoded as a UTF-8 string.
+
+    Raises:
+        Any exception raised while opening, reading, or decoding the file.
+    """
     try:
         remote_path = os.path.join(folder, filename)
         with sftp.open(remote_path, "r") as f:
@@ -256,6 +401,18 @@ def read_file_from_sftp(sftp, folder, filename):
 
 
 def save_dataframe(df, filepath):
-    """Save a pandas DataFrame to CSV."""
+    """Write a pandas DataFrame to a CSV file without the index column.
+
+    Args:
+        df: DataFrame to write.
+        filepath: Local or mounted filesystem path for the output CSV.
+
+    Returns:
+        ``None``. The function logs the destination after the write succeeds.
+
+    Raises:
+        Any exception raised by pandas or the filesystem when writing the
+        file.
+    """
     df.to_csv(filepath, index=False)
     logging.info(f"💾 Saved DataFrame to {filepath}")
