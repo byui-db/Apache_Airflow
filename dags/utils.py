@@ -401,18 +401,23 @@ def read_file_from_sftp(sftp, folder, filename):
 
 
 def save_dataframe(df, filepath):
-    """Write a pandas DataFrame to a CSV file without the index column.
+    """Write a pandas or polars DataFrame to a CSV file.
+
+    The pandas index column is not written.
 
     Args:
-        df: DataFrame to write.
+        df: pandas or polars DataFrame to write.
         filepath: Local or mounted filesystem path for the output CSV.
 
     Returns:
         ``None``. The function logs the destination after the write succeeds.
 
     Raises:
-        Any exception raised by pandas or the filesystem when writing the
-        file.
+        Any exception raised by pandas, polars, or the filesystem when
+        writing the file.
     """
-    df.to_csv(filepath, index=False)
+    if hasattr(df, "write_csv"):  # polars
+        df.write_csv(filepath)
+    else:
+        df.to_csv(filepath, index=False)
     logging.info(f"💾 Saved DataFrame to {filepath}")
