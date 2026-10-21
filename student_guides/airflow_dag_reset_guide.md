@@ -130,5 +130,5 @@ docker exec -it apache_airflow-airflow-scheduler-1 bash -c "airflow dags pause s
 ---
 
 **Author:** ITM 327 — Data Engineering Fundamentals  
-**Topic:** Airflow 3.0+ DAG Management and History Reset  
+**Topic:** Airflow 3+ DAG Management and History Reset  
 **Last Updated:** October 2025  
