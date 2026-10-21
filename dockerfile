@@ -1,4 +1,4 @@
-FROM apache/airflow:3.3.1
+FROM apache/airflow:3.3.2
 
 # Switch to root only for apt installs
 USER root

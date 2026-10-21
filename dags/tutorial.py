@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------
 # tutorial.py
-# Airflow 3.0 TaskFlow API — Tutorial DAG
+# Airflow 3 TaskFlow API — Tutorial DAG
 # Demonstrates a dependency-free ETL flow:
 # Extract → Transform → Quality Check → Load
 # ----------------------------------------------------------------

@@ -1,7 +1,7 @@
-# 📅 Airflow 3.0+ Scheduling, Catchup, and DAG Timing
+# 📅 Airflow 3+ Scheduling, Catchup, and DAG Timing
 
 ## Overview
-In Apache Airflow 3.0 and later, scheduling behavior is more predictable but slightly stricter.  
+In Apache Airflow 3 and later, scheduling behavior is more predictable but slightly stricter.  
 This guide explains how `schedule`, `catchup`, and `max_active_runs` work together — and how to design DAGs that behave correctly when running daily or performing backfills.
 
 ---
