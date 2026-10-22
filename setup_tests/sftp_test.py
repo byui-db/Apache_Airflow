@@ -2,7 +2,7 @@
 import os
 import time
 import logging
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
 import paramiko
 from pathlib import Path
 
@@ -11,6 +11,8 @@ from pathlib import Path
 
 # Load env
 load_dotenv(Path(__file__).parent.parent / ".env")
+# instructor use only
+# os.environ.update(dotenv_values("student.env"))
 
 SFTP_HOST = os.getenv("SFTP_HOST")
 SFTP_PORT = int(os.getenv("SFTP_PORT"))
