@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  tests:
+    name: DAG imports and utils tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the Airflow image
+        run: docker build -t airflow-ci .
+      - name: Run tests inside the image
+        run: |
+          docker run --rm \
+            -v "$PWD/dags:/opt/airflow/dags:ro" \
+            -v "$PWD/tests:/opt/airflow/tests:ro" \
+            -e AIRFLOW__CORE__LOAD_EXAMPLES=false \
+            --entrypoint bash airflow-ci \
+            -c "pip install -q pytest && cd /opt/airflow && python -m pytest -q tests"
+
+  lint:
+    name: Airflow 3 lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check dags --select AIR
