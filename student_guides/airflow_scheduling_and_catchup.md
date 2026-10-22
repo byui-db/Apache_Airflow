@@ -33,7 +33,7 @@ def mongo_to_snowflake():
 
 | Parameter | Purpose |
 |------------|----------|
-| `start_date` | The first logical execution date for the DAG. |
+| `start_date` | The first logical date for the DAG. |
 | `schedule` | Defines how often Airflow should create runs (`@daily`, `@weekly`, or cron string). |
 | `catchup` | If `True`, Airflow creates *all* missed runs since `start_date`; if `False`, only the next run is triggered. |
 | `max_active_runs` | Limits how many DAG runs can execute at once (important for catch-up). |
@@ -122,12 +122,12 @@ Each run will print a different date window, depending on which logical day Airf
 
 If your pipeline:
 - always performs a **full refresh** (re-loads all data each run), or  
-- doesn’t parameterize by execution date (`{{ ds }}` or `data_interval_start`)
+- doesn’t parameterize by logical date (`{{ ds }}` or `data_interval_start`)
 
 then `catchup=True` will simply repeat the same work many times.  
 Keep `catchup=False` for these DAGs.
 
-Use `catchup=True` only when your extract logic filters data by **execution date**, for example:
+Use `catchup=True` only when your extract logic filters data by **logical date**, for example:
 
 ```python
 @task()
