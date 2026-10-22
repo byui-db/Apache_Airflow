@@ -1,11 +1,14 @@
 #%% start_mongo_tunnel.py
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
 from sshtunnel import SSHTunnelForwarder
 import time
 from pathlib import Path
 
 load_dotenv(Path(__file__).parent.parent / '.env')
+# instructor use only
+# os.environ.update(dotenv_values("student.env"))
+# load_dotenv('student.env')
 
 # SSH credentials
 SSH_HOST = os.getenv("SSH_HOST")
