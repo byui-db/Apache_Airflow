@@ -158,6 +158,13 @@ Fix: in your DAG file (e.g. [dags/starter_dag.py](dags/starter_dag.py) around li
 
 After editing, save the file, then in the Airflow UI go to the DAG → **Browse → DAG Runs** and delete any queued/stuck runs. New runs will follow the updated config.
 
+### `mongo_template_dag` fails: "No MongoDB records for trading day"
+Symptom: the `mongo_template_dag` task goes **red** with `AirflowException: No MongoDB records for trading day YYYY-MM-DD`.
+
+Cause: this is **intentional, not a bug.** The Mongo → Snowflake stock DAG fails on purpose when a *trading day* (per the NYSE calendar) has **no data** in MongoDB — instead of silently "succeeding" with zero rows, which is how a gap gets hidden and never re-pulled. Weekends and market holidays with no data pass normally.
+
+Fix: it usually means MongoDB doesn't have that day's stock data *yet*. Once it lands, **Clear** the task (Grid view → select the run → **Clear**) to re-run it — retries and re-runs are safe because the load is idempotent. If the data genuinely won't arrive, that's a real upstream gap to backfill first. (News DAGs do **not** fail on empty — a quiet news day is a valid result.)
+
 ## Snowflake troubleshooting
 ### `Table '...' does not exist` when the DAG tries to load
 Symptom: the Snowflake connection opens fine but the load step fails with `SQL compilation error: Table 'PROJECT_DB.RAW.STARTER_DAG_<NAME>' does not exist`.
